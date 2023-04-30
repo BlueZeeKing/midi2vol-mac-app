@@ -13,6 +13,7 @@ fn greet(name: &str) -> String {
 fn main() {
     let volume = Volume::new(5.0);
 
+    #[allow(unused_variables)] // This value must be kept in order to keep the callback alive
     let data = midi::new(0, move |packet| {
         volume.set((packet.val as f32 / 127.0 * 70.0).round() / 10.0)
     });
