@@ -69,6 +69,8 @@ fn main() {
 struct Settings {
     vol_sample_time: u64,
     midi_devices: Vec<String>,
+    channel: u8,
+    cc_num: u8,
 }
 
 #[tauri::command]
@@ -86,17 +88,35 @@ fn get_settings(state: State<ConnectionState>) -> Settings {
                     .unwrap_or(format!("Unnamed source: {}", index))
             })
             .collect::<Vec<_>>(),
+        channel: connection.get_channel(),
+        cc_num: connection.get_cc(),
     }
 }
 
 #[tauri::command]
-fn set_settings(device_index: usize, sample_time: u64, state: State<ConnectionState>) {
+fn set_settings(
+    device_index: usize,
+    sample_time: u64,
+    channel: u8,
+    cc_num: u8,
+    state: State<ConnectionState>,
+) -> Option<String> {
     let mut connection = state.connection.lock().unwrap();
 
     connection.set_source_index(device_index);
     connection
         .volume
-        .set_sleep_time(Duration::from_millis(sample_time))
+        .set_sleep_time(Duration::from_millis(sample_time));
+    connection.set_cc(cc_num);
+    connection.set_channel(channel);
+
+    let port = connection.create_callback();
+    connection.set_port(port);
+
+    match connection.get_error() {
+        Some(err) => Some(format!("{:?}", err)),
+        None => None,
+    }
 }
 
 #[tauri::command]

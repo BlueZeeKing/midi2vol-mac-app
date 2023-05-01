@@ -15,6 +15,7 @@ import {
   Tooltip,
   Link,
   useColorMode,
+  HStack,
 } from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
@@ -28,6 +29,8 @@ import {
 interface Settings {
   vol_sample_time: number;
   midi_devices: string[];
+  channel: number;
+  cc_num: number;
 }
 
 export default function App() {
@@ -38,6 +41,8 @@ export default function App() {
       const data = raw_data as Settings;
       setData(data);
       setSpeed(data.vol_sample_time.toString());
+      setChannel(data.channel.toString());
+      setCC(data.cc_num.toString());
     });
 
     invoke("get_error").then((error) => {
@@ -48,6 +53,9 @@ export default function App() {
 
   const [speed, setSpeed] = useState("");
   const [source, setSource] = useState(0);
+
+  const [channel, setChannel] = useState("");
+  const [cc, setCC] = useState("");
 
   const [status, setStatus] = useState<string | null | undefined>(undefined);
 
@@ -60,7 +68,7 @@ export default function App() {
         style={{ height: "30px", width: "100%" }}
       ></div>
       <VStack p="2" gap="4">
-        <Heading textAlign="center" p="8" w="100%">
+        <Heading textAlign="center" p="8" w="100%" pt="4">
           Settings
         </Heading>
         {data ? (
@@ -70,6 +78,10 @@ export default function App() {
             onSpeedChange={setSpeed}
             source={source}
             onSourceChange={setSource}
+            channel={channel}
+            onChannelChange={setChannel}
+            cc={cc}
+            onCcChange={setCC}
           />
         ) : (
           <Spinner />
@@ -80,7 +92,10 @@ export default function App() {
             invoke("set_settings", {
               deviceIndex: source,
               sampleTime: parseInt(speed),
-            });
+              channel: parseInt(channel),
+              ccNum: parseInt(cc),
+            }).then((e) => setStatus(e));
+            setStatus(undefined);
           }}
         >
           Save
@@ -154,6 +169,10 @@ function Inputs(props: {
   source: number;
   onSourceChange: (source: number) => void;
   options: string[];
+  channel: string;
+  onChannelChange: (speed: string) => void;
+  cc: string;
+  onCcChange: (speed: string) => void;
 }) {
   return (
     <>
@@ -162,6 +181,7 @@ function Inputs(props: {
         <Input
           value={props.speed}
           onChange={(e) => props.onSpeedChange(e.target.value)}
+          type="number"
         />
       </FormLabel>
       <FormLabel w="65%" key="source">
@@ -176,6 +196,24 @@ function Inputs(props: {
           ))}
         </Select>
       </FormLabel>
+      <HStack w="65%">
+        <FormLabel key="channel">
+          MIDI Channel
+          <Input
+            value={props.channel}
+            onChange={(e) => props.onChannelChange(e.target.value)}
+            type="number"
+          />
+        </FormLabel>
+        <FormLabel key="cc">
+          CC Number
+          <Input
+            value={props.cc}
+            onChange={(e) => props.onCcChange(e.target.value)}
+            type="number"
+          />
+        </FormLabel>
+      </HStack>
     </>
   );
 }
