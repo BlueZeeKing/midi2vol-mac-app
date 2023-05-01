@@ -1,16 +1,20 @@
-use midi2vol_mac::{midi, vol::Volume};
+use std::time::Duration;
+
+use coremidi::Sources;
+use midi2vol_mac::{midi::Connection, vol::Volume};
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 use tauri::{
-    ActivationPolicy, CustomMenuItem, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu,
+    ActivationPolicy, CustomMenuItem, RunEvent, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
     SystemTrayMenuItem, WindowBuilder, WindowUrl,
 };
 
-fn main() {
-    let volume = Volume::new(5.0);
+struct ConnectionState {
+    connection: Mutex<Connection>,
+}
 
-    #[allow(unused_variables)] // This value must be kept in order to keep the callback alive
-    let data = midi::new(0, move |packet| {
-        volume.set((packet.val as f32 / 127.0 * 70.0).round() / 10.0)
-    });
+fn main() {
+    let connection = Connection::new(0, Volume::new(5.0, Duration::from_millis(100)));
 
     let tray_menu = SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("open", "Open Settings"))
@@ -20,7 +24,11 @@ fn main() {
     let tray = SystemTray::new().with_menu(tray_menu);
 
     let app = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![get_settings, set_settings])
         .system_tray(tray)
+        .manage(ConnectionState {
+            connection: Mutex::new(connection),
+        })
         .on_system_tray_event(|app, event| match event {
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "quit" => std::process::exit(0),
@@ -48,4 +56,38 @@ fn main() {
             }
             _ => {}
         });
+}
+
+#[derive(Serialize, Deserialize)]
+struct Settings {
+    vol_sample_time: u64,
+    midi_devices: Vec<String>,
+}
+
+#[tauri::command]
+fn get_settings(state: State<ConnectionState>) -> Settings {
+    let connection = state.connection.lock().unwrap();
+
+    Settings {
+        vol_sample_time: connection.volume.get_sleep_time().as_millis() as u64,
+        midi_devices: Sources
+            .into_iter()
+            .enumerate()
+            .map(|(index, source)| {
+                source
+                    .display_name()
+                    .unwrap_or(format!("Unnamed source: {}", index))
+            })
+            .collect::<Vec<_>>(),
+    }
+}
+
+#[tauri::command]
+fn set_settings(device_index: usize, sample_time: u64, state: State<ConnectionState>) {
+    let mut connection = state.connection.lock().unwrap();
+
+    connection.set_source_index(device_index);
+    connection
+        .volume
+        .set_sleep_time(Duration::from_millis(sample_time))
 }
