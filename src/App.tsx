@@ -14,10 +14,16 @@ import {
   IconButton,
   Tooltip,
   Link,
+  useColorMode,
 } from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
-import { ExternalLinkIcon, RepeatIcon } from "@chakra-ui/icons";
+import {
+  ExternalLinkIcon,
+  RepeatIcon,
+  SunIcon,
+  MoonIcon,
+} from "@chakra-ui/icons";
 
 interface Settings {
   vol_sample_time: number;
@@ -44,6 +50,8 @@ export default function App() {
   const [source, setSource] = useState(0);
 
   const [status, setStatus] = useState<string | null | undefined>(undefined);
+
+  const { colorMode, toggleColorMode } = useColorMode();
 
   return (
     <>
@@ -87,6 +95,22 @@ export default function App() {
           </Link>
         </Tooltip>
       </VStack>
+      <Box position="absolute" bottom="0" right="0" p="2">
+        <Tooltip label="Toggle color mode">
+          <IconButton
+            colorScheme={colorMode == "dark" ? "whiteAlpha" : "blackAlpha"}
+            icon={
+              colorMode == "dark" ? (
+                <SunIcon color="white" />
+              ) : (
+                <MoonIcon color="black" />
+              )
+            }
+            aria-label="Toggle color mode"
+            onClick={toggleColorMode}
+          />
+        </Tooltip>
+      </Box>
       <Box p="4" position="absolute" bottom="0" left="0">
         {status != undefined ? (
           status == null ? (

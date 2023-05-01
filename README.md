@@ -2,7 +2,7 @@
 
 ## Todo
 
-- [ ] Fix dark mode
+- [x] Fix dark mode
 - [ ] Channel and CC number selector
 - [x] Launch on login how-to
 - [ ] Logo and name
