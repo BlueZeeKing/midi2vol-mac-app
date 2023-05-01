@@ -29,33 +29,39 @@ export default function App() {
   const [source, setSource] = useState(0);
 
   return (
-    <VStack p="2" gap="4">
-      <Heading textAlign="center" p="8">
-        Settings
-      </Heading>
-      {data ? (
-        <Inputs
-          speed={speed}
-          options={data.midi_devices}
-          onSpeedChange={setSpeed}
-          source={source}
-          onSourceChange={setSource}
-        />
-      ) : (
-        <Spinner />
-      )}
-      <Button
-        colorScheme="blue"
-        onClick={() => {
-          invoke("set_settings", {
-            deviceIndex: source,
-            sampleTime: parseInt(speed),
-          });
-        }}
-      >
-        Save
-      </Button>
-    </VStack>
+    <>
+      <div
+        data-tauri-drag-region
+        style={{ height: "30px", width: "100%" }}
+      ></div>
+      <VStack p="2" gap="4">
+        <Heading textAlign="center" p="8" w="100%">
+          Settings
+        </Heading>
+        {data ? (
+          <Inputs
+            speed={speed}
+            options={data.midi_devices}
+            onSpeedChange={setSpeed}
+            source={source}
+            onSourceChange={setSource}
+          />
+        ) : (
+          <Spinner />
+        )}
+        <Button
+          colorScheme="blue"
+          onClick={() => {
+            invoke("set_settings", {
+              deviceIndex: source,
+              sampleTime: parseInt(speed),
+            });
+          }}
+        >
+          Save
+        </Button>
+      </VStack>
+    </>
   );
 }
 
@@ -68,20 +74,22 @@ function Inputs(props: {
 }) {
   return (
     <>
-      <FormLabel w="65%">
+      <FormLabel w="65%" key="vol">
         Set Volume Time Speed (milliseconds)
         <Input
           value={props.speed}
           onChange={(e) => props.onSpeedChange(e.target.value)}
         />
       </FormLabel>
-      <FormLabel w="65%">
+      <FormLabel w="65%" key="source">
         MIDI Input
         <Select
           onChange={(e) => props.onSourceChange(parseInt(e.target.value))}
         >
           {props.options.map((item, index) => (
-            <option value={index}>{item}</option>
+            <option key={index} value={index}>
+              {item}
+            </option>
           ))}
         </Select>
       </FormLabel>

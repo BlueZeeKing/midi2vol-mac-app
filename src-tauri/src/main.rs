@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{
     ActivationPolicy, CustomMenuItem, RunEvent, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, WindowBuilder, WindowUrl,
+    SystemTrayMenuItem, TitleBarStyle, WindowBuilder, WindowUrl,
 };
 
 struct ConnectionState {
@@ -34,10 +34,11 @@ fn main() {
                 "quit" => std::process::exit(0),
                 "open" => {
                     WindowBuilder::new(app, "settings", WindowUrl::App("index.html".into()))
+                        .title_bar_style(TitleBarStyle::Overlay)
+                        .title("Settings")
+                        .hidden_title(true)
                         .build()
-                        .expect("Could not make a new settings window, one may already exist")
-                        .set_title("Settings")
-                        .expect("Could not set title");
+                        .expect("Could not make a new settings window, one may already exist");
                 }
                 _ => (),
             },
