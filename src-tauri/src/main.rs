@@ -1,7 +1,10 @@
-use std::time::Duration;
+use std::{fmt::format, time::Duration};
 
 use coremidi::Sources;
-use midi2vol_mac::{midi::Connection, vol::Volume};
+use midi2vol_mac::{
+    midi::{self, Connection},
+    vol::Volume,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{
@@ -14,7 +17,8 @@ struct ConnectionState {
 }
 
 fn main() {
-    let connection = Connection::new(0, Volume::new(5.0, Duration::from_millis(100)));
+    let connection = Connection::new(0, Volume::new(5.0, Duration::from_millis(100)))
+        .expect("Could not open midi connection");
 
     let tray_menu = SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("open", "Open Settings"))
@@ -24,7 +28,12 @@ fn main() {
     let tray = SystemTray::new().with_menu(tray_menu);
 
     let app = tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_settings, set_settings])
+        .invoke_handler(tauri::generate_handler![
+            get_settings,
+            set_settings,
+            get_error,
+            attempt_restart
+        ])
         .system_tray(tray)
         .manage(ConnectionState {
             connection: Mutex::new(connection),
@@ -91,4 +100,30 @@ fn set_settings(device_index: usize, sample_time: u64, state: State<ConnectionSt
     connection
         .volume
         .set_sleep_time(Duration::from_millis(sample_time))
+}
+
+#[tauri::command]
+fn get_error(state: State<ConnectionState>) -> Option<String> {
+    match state
+        .connection
+        .lock()
+        .expect("Could not access the connection")
+        .get_error()
+    {
+        Some(err) => Some(format!("{:?}", err)),
+        None => None,
+    }
+}
+
+#[tauri::command]
+fn attempt_restart(state: State<ConnectionState>) -> Option<String> {
+    let mut connection = state.connection.lock().unwrap();
+
+    let port = connection.create_callback();
+    connection.set_port(port);
+
+    match connection.get_error() {
+        Some(err) => Some(format!("{:?}", err)),
+        None => None,
+    }
 }

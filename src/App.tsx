@@ -6,9 +6,17 @@ import {
   Select,
   Spinner,
   Button,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  AlertTitle,
+  Box,
+  IconButton,
+  Tooltip,
 } from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
+import { TbReload } from "react-icons/tb";
 
 interface Settings {
   vol_sample_time: number;
@@ -17,16 +25,24 @@ interface Settings {
 
 export default function App() {
   const [data, setData] = useState<Settings | null>(null);
+
   useEffect(() => {
     invoke("get_settings").then((raw_data) => {
       const data = raw_data as Settings;
       setData(data);
       setSpeed(data.vol_sample_time.toString());
     });
+
+    invoke("get_error").then((error) => {
+      console.log(error);
+      setStatus(error as string | null);
+    });
   }, []);
 
   const [speed, setSpeed] = useState("");
   const [source, setSource] = useState(0);
+
+  const [status, setStatus] = useState<string | null | undefined>(undefined);
 
   return (
     <>
@@ -61,6 +77,37 @@ export default function App() {
           Save
         </Button>
       </VStack>
+      <Box p="4" position="absolute" bottom="0" left="0">
+        {status != undefined ? (
+          status == null ? (
+            <Alert status="success" shadow="base" rounded="base">
+              <AlertIcon />
+              <AlertTitle>The MIDI client is running</AlertTitle>
+            </Alert>
+          ) : (
+            <Alert status="error" shadow="base" rounded="base">
+              <AlertIcon />
+              <AlertTitle>The MIDI client has failed</AlertTitle>
+              <AlertDescription>{status}</AlertDescription>
+              <Tooltip label="Attempt Restart">
+                <IconButton
+                  colorScheme="red"
+                  variant="ghost"
+                  mx="2"
+                  icon={<TbReload />}
+                  aria-label="Attempt Restart"
+                  onClick={() => {
+                    setStatus(undefined);
+                    invoke("attempt_restart").then((e) => setStatus(e));
+                  }}
+                />
+              </Tooltip>
+            </Alert>
+          )
+        ) : (
+          <Spinner />
+        )}
+      </Box>
     </>
   );
 }

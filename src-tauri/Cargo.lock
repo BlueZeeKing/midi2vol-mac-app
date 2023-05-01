@@ -1424,7 +1424,7 @@ dependencies = [
 [[package]]
 name = "midi2vol-mac"
 version = "0.1.0"
-source = "git+https://github.com/BlueZeeKing/midi2vol-mac.git#6473ec02bbd01efc446d75c04748a75dde9c2782"
+source = "git+https://github.com/BlueZeeKing/midi2vol-mac.git#32260bd3ca6e44f5d1cd3b592436503893377485"
 dependencies = [
  "atomic_float",
  "coremidi",
