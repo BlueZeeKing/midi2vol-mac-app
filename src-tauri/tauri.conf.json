@@ -7,8 +7,8 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "midi2vol-mac-app",
-    "version": "0.0.0"
+    "productName": "MIDI2Vol Mac",
+    "version": "0.1.0"
   },
   "tauri": {
     "systemTray": {

@@ -94,7 +94,7 @@ export default function App() {
               sampleTime: parseInt(speed),
               channel: parseInt(channel),
               ccNum: parseInt(cc),
-            }).then((e) => setStatus(e));
+            }).then((e) => setStatus(e as string | null));
             setStatus(undefined);
           }}
         >
