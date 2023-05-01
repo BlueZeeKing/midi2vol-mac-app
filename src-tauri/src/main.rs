@@ -1,10 +1,7 @@
-use std::{fmt::format, time::Duration};
+use std::time::Duration;
 
 use coremidi::Sources;
-use midi2vol_mac::{
-    midi::{self, Connection},
-    vol::Volume,
-};
+use midi2vol_mac::{midi::Connection, vol::Volume};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{

@@ -13,10 +13,11 @@ import {
   Box,
   IconButton,
   Tooltip,
+  Link,
 } from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
-import { TbReload } from "react-icons/tb";
+import { ExternalLinkIcon, RepeatIcon } from "@chakra-ui/icons";
 
 interface Settings {
   vol_sample_time: number;
@@ -76,6 +77,15 @@ export default function App() {
         >
           Save
         </Button>
+        <Tooltip
+          label="https://support.apple.com/guide/mac-help/open-items-automatically-when-you-log-in-mh15189/mac"
+          openDelay={600}
+        >
+          <Link href="https://support.apple.com/guide/mac-help/open-items-automatically-when-you-log-in-mh15189/mac">
+            How to set up launch at login
+            <ExternalLinkIcon mx="2" />
+          </Link>
+        </Tooltip>
       </VStack>
       <Box p="4" position="absolute" bottom="0" left="0">
         {status != undefined ? (
@@ -94,11 +104,13 @@ export default function App() {
                   colorScheme="red"
                   variant="ghost"
                   mx="2"
-                  icon={<TbReload />}
+                  icon={<RepeatIcon />}
                   aria-label="Attempt Restart"
                   onClick={() => {
                     setStatus(undefined);
-                    invoke("attempt_restart").then((e) => setStatus(e));
+                    invoke("attempt_restart").then((e) =>
+                      setStatus(e as string | null)
+                    );
                   }}
                 />
               </Tooltip>
