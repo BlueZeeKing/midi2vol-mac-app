@@ -75,7 +75,7 @@ function Inputs(props: {
   return (
     <>
       <FormLabel w="65%" key="vol">
-        Set Volume Time Speed (milliseconds)
+        Volume Sample Rate (milliseconds)
         <Input
           value={props.speed}
           onChange={(e) => props.onSpeedChange(e.target.value)}
