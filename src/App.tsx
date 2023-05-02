@@ -16,6 +16,7 @@ import {
   Link,
   useColorMode,
   HStack,
+  Switch,
 } from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
@@ -41,13 +42,12 @@ export default function App() {
       const data = raw_data as Settings;
       setData(data);
       setSpeed(data.vol_sample_time.toString());
-      setChannel(data.channel.toString());
+      setChannel((data.channel + 1).toString());
       setCC(data.cc_num.toString());
     });
 
     invoke("get_error").then((error) => {
-      console.log(error);
-      setStatus(error as string | null);
+      setStatus(error as string);
     });
   }, []);
 
@@ -57,7 +57,7 @@ export default function App() {
   const [channel, setChannel] = useState("");
   const [cc, setCC] = useState("");
 
-  const [status, setStatus] = useState<string | null | undefined>(undefined);
+  const [status, setStatus] = useState<string | undefined>(undefined);
 
   const { colorMode, toggleColorMode } = useColorMode();
 
@@ -89,13 +89,14 @@ export default function App() {
         <Button
           colorScheme="blue"
           onClick={() => {
+            setStatus(undefined);
+
             invoke("set_settings", {
               deviceIndex: source,
               sampleTime: parseInt(speed),
-              channel: parseInt(channel),
+              channel: parseInt(channel) - 1,
               ccNum: parseInt(cc),
-            }).then((e) => setStatus(e as string | null));
-            setStatus(undefined);
+            }).then((e) => setStatus(e as string));
           }}
         >
           Save
@@ -128,7 +129,7 @@ export default function App() {
       </Box>
       <Box p="4" position="absolute" bottom="0" left="0">
         {status != undefined ? (
-          status == null ? (
+          status == "" ? (
             <Alert status="success" shadow="base" rounded="base">
               <AlertIcon />
               <AlertTitle>The MIDI client is running</AlertTitle>
@@ -148,7 +149,7 @@ export default function App() {
                   onClick={() => {
                     setStatus(undefined);
                     invoke("attempt_restart").then((e) =>
-                      setStatus(e as string | null)
+                      setStatus(e as string)
                     );
                   }}
                 />
@@ -197,7 +198,7 @@ function Inputs(props: {
         </Select>
       </FormLabel>
       <HStack w="65%">
-        <FormLabel key="channel">
+        <FormLabel key="channel" mb="0">
           MIDI Channel
           <Input
             value={props.channel}

@@ -1,16 +1,20 @@
-use std::time::Duration;
+use std::{sync::atomic::AtomicBool, sync::atomic::Ordering, time::Duration};
 
 use coremidi::Sources;
-use midi2vol_mac::{midi::Connection, vol::Volume};
+use midi2vol_mac::{
+    midi::{self, Connection},
+    vol::Volume,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{
-    ActivationPolicy, CustomMenuItem, RunEvent, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, TitleBarStyle, WindowBuilder, WindowUrl,
+    ActivationPolicy, CustomMenuItem, Manager, RunEvent, State, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem, TitleBarStyle, WindowBuilder, WindowUrl,
 };
 
 struct ConnectionState {
     connection: Mutex<Connection>,
+    enabled: AtomicBool,
 }
 
 fn main() {
@@ -18,6 +22,7 @@ fn main() {
         .expect("Could not open midi connection");
 
     let tray_menu = SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("enabled", "Enabled").selected())
         .add_item(CustomMenuItem::new("open", "Open Settings"))
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(CustomMenuItem::new("quit", "Quit"));
@@ -29,14 +34,34 @@ fn main() {
             get_settings,
             set_settings,
             get_error,
-            attempt_restart
+            attempt_restart,
         ])
         .system_tray(tray)
         .manage(ConnectionState {
+            enabled: AtomicBool::new(true),
             connection: Mutex::new(connection),
         })
         .on_system_tray_event(|app, event| match event {
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "enabled" => {
+                    let state = app.state::<ConnectionState>();
+
+                    let is_enabled = state.enabled.fetch_xor(true, Ordering::Relaxed);
+
+                    app.tray_handle()
+                        .get_item("enabled")
+                        .set_selected(is_enabled)
+                        .expect("Could not set selected value");
+
+                    let mut connection = state.connection.lock().unwrap();
+
+                    if is_enabled {
+                        let port = connection.create_callback();
+                        connection.set_port(port);
+                    } else {
+                        connection.set_port(Err(midi::Error::UserStopped))
+                    }
+                }
                 "quit" => std::process::exit(0),
                 "open" => {
                     WindowBuilder::new(app, "settings", WindowUrl::App("index.html".into()))
@@ -71,6 +96,7 @@ struct Settings {
     midi_devices: Vec<String>,
     channel: u8,
     cc_num: u8,
+    enabled: bool,
 }
 
 #[tauri::command]
@@ -90,6 +116,7 @@ fn get_settings(state: State<ConnectionState>) -> Settings {
             .collect::<Vec<_>>(),
         channel: connection.get_channel(),
         cc_num: connection.get_cc(),
+        enabled: matches!(connection.get_error(), Some(midi::Error::UserStopped)),
     }
 }
 
@@ -100,7 +127,7 @@ fn set_settings(
     channel: u8,
     cc_num: u8,
     state: State<ConnectionState>,
-) -> Option<String> {
+) -> String {
     let mut connection = state.connection.lock().unwrap();
 
     connection.set_source_index(device_index);
@@ -114,33 +141,33 @@ fn set_settings(
     connection.set_port(port);
 
     match connection.get_error() {
-        Some(err) => Some(format!("{:?}", err)),
-        None => None,
+        Some(err) => format!("{:?}", err),
+        None => "".to_owned(),
     }
 }
 
 #[tauri::command]
-fn get_error(state: State<ConnectionState>) -> Option<String> {
+fn get_error(state: State<ConnectionState>) -> String {
     match state
         .connection
         .lock()
         .expect("Could not access the connection")
         .get_error()
     {
-        Some(err) => Some(format!("{:?}", err)),
-        None => None,
+        Some(err) => format!("{:?}", err),
+        None => "".to_owned(),
     }
 }
 
 #[tauri::command]
-fn attempt_restart(state: State<ConnectionState>) -> Option<String> {
+fn attempt_restart(state: State<ConnectionState>) -> String {
     let mut connection = state.connection.lock().unwrap();
 
     let port = connection.create_callback();
     connection.set_port(port);
 
     match connection.get_error() {
-        Some(err) => Some(format!("{:?}", err)),
-        None => None,
+        Some(err) => format!("{:?}", err),
+        None => "".to_owned(),
     }
 }
